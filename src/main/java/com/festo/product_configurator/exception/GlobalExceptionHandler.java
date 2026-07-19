@@ -62,4 +62,21 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(response);
     }
+
+    @ExceptionHandler(
+            InvalidProductFilterException.class
+    )
+    public ResponseEntity<ApiError> handleInvalidProductFilterException(
+            InvalidProductFilterException exception
+    ) {
+        ApiError apiError = new ApiError(
+                400,
+                "Bad request",
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .badRequest()
+                .body(apiError);
+    }
 }

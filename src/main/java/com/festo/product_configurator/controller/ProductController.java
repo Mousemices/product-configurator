@@ -1,6 +1,7 @@
 package com.festo.product_configurator.controller;
 
 import com.festo.product_configurator.dto.CreateProductRequest;
+import com.festo.product_configurator.dto.UpdateProductRequest;
 import com.festo.product_configurator.model.Product;
 import com.festo.product_configurator.service.ProductService;
 import jakarta.validation.Valid;
@@ -23,8 +24,16 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<Product> getProducts() {
-        return productService.getAllProducts();
+    public List<Product> getProducts(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Double maxPrice
+    ) {
+        return productService.getProducts(
+                category,
+                search,
+                maxPrice
+        );
     }
 
     @GetMapping("/{id}")
@@ -38,7 +47,7 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<Product> createProduct(
-            //@Valid
+            @Valid
             @RequestBody CreateProductRequest request
     ) {
         Product createdProduct = productService.createProduct(request);
@@ -52,27 +61,21 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(
             @PathVariable Long id
     ) {
-        boolean deleted = productService.deleteProduct(id);
+        productService.deleteProduct(id);
 
-        if (deleted) {
-            return ResponseEntity.noContent().build();
-        }
-
-        return ResponseEntity.notFound().build();
+        return ResponseEntity
+                .noContent()
+                .build();
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(
             @PathVariable Long id,
-            @RequestBody Product product
-    ) {
-        return productService
-                .updateProduct(id, product)
-                .map(ResponseEntity::ok)
-                .orElseGet(() ->
-                    ResponseEntity
-                            .notFound()
-                            .build()
-                );
+            @Valid @RequestBody UpdateProductRequest request
+            ) {
+
+        Product updatedProduct = productService.updateProduct(id, request);
+
+        return ResponseEntity.ok(updatedProduct);
     }
 }

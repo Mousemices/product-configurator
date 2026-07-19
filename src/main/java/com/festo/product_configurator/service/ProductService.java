@@ -1,13 +1,15 @@
 package com.festo.product_configurator.service;
 
 import com.festo.product_configurator.dto.CreateProductRequest;
+import com.festo.product_configurator.dto.UpdateProductRequest;
+import com.festo.product_configurator.exception.InvalidProductFilterException;
 import com.festo.product_configurator.exception.ProductNotFoundException;
 import com.festo.product_configurator.model.Product;
 import com.festo.product_configurator.repository.ProductRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ProductService {
@@ -20,8 +22,19 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public List<Product> getAllProducts() {
+    /*public List<Product> getAllProducts() {
         return productRepository.findAll();
+    }*/
+
+    public Product createProduct(CreateProductRequest request) {
+        Product product =
+                new Product(
+                        request.name(),
+                        request.category(),
+                        request.price()
+                );
+
+        return productRepository.save(product);
     }
 
     public Product getProductById(Long id)  {
@@ -32,26 +45,79 @@ public class ProductService {
                 );
     }
 
-    public Product createProduct(CreateProductRequest request) {
+    public void deleteProduct(Long id) {
+
         Product product =
-                new Product(
-                        null,
-                        request.name(),
-                        request.category(),
-                        request.price()
-                );
+                productRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () -> new ProductNotFoundException(id)
+                        );
 
-        return productRepository.save(product);
+        productRepository.delete(product);
     }
 
-    public boolean deleteProduct(Long id) {
-        return productRepository.deleteById(id);
-    }
-
-    public Optional<Product> updateProduct(
+    @Transactional
+    public Product updateProduct(
             Long id,
-            Product product
+            UpdateProductRequest request
     ) {
-        return productRepository.updateById(id, product);
+        Product product = productRepository.findById(id).orElseThrow(
+                () -> new ProductNotFoundException(id)
+        );
+
+        product.update(
+                request.name(),
+                request.category(),
+                request.price()
+        );
+
+        return product;
+    }
+
+    public List<Product> getProducts(
+            String category,
+            String search,
+            Double maxPrice
+    ) {
+        int filterCount = 0;
+
+        if (category != null && !category.isBlank()) {
+            filterCount++;
+        }
+
+        if (search != null && !search.isBlank()) {
+            filterCount++;
+        }
+
+        if (maxPrice != null) {
+            filterCount++;
+        }
+
+        if (filterCount > 1) {
+            throw new InvalidProductFilterException(
+                    "Only one filter can be used at a time"
+            );
+        }
+
+        if (category != null && !category.isBlank()) {
+            return productRepository.findByCategoryIgnoreCase(category);
+        }
+
+        if (search != null && !search.isBlank()) {
+            return productRepository.findByNameContainingIgnoreCase(search);
+        }
+
+        if (maxPrice != null) {
+            if (maxPrice < 0) {
+                throw new InvalidProductFilterException(
+                        "maxPrice must be greater than 0"
+                );
+            }
+
+            return productRepository.findByPriceLessThanEqual(maxPrice);
+        }
+
+        return productRepository.findAll();
     }
 }

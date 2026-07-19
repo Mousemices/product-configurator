@@ -1,10 +1,23 @@
 package com.festo.product_configurator.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
 public class Product {
 
+    @Id
+    @GeneratedValue(
+            strategy = GenerationType.IDENTITY
+    )
     private Long id;
+
     private String name;
+
     private String category;
+
     private double price;
 
     public Product() {
@@ -12,12 +25,10 @@ public class Product {
     }
 
     public Product(
-            Long id,
             String name,
             String category,
             double price
     ) {
-        this.id = id;
         this.name = name;
         this.category = category;
         this.price = price;
@@ -37,5 +48,15 @@ public class Product {
 
     public double getPrice() {
         return price;
+    }
+
+    public void update(
+            String name,
+            String category,
+            double price
+    ) {
+        this.name = name;
+        this.category = category;
+        this.price = price;
     }
 }
