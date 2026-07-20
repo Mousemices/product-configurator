@@ -6,10 +6,14 @@ import com.festo.product_configurator.exception.InvalidProductFilterException;
 import com.festo.product_configurator.exception.ProductNotFoundException;
 import com.festo.product_configurator.model.Product;
 import com.festo.product_configurator.repository.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProductService {
@@ -75,11 +79,53 @@ public class ProductService {
         return product;
     }
 
-    public List<Product> getProducts(
+    public Page<Product> getProducts(
             String category,
             String search,
-            Double maxPrice
+            Double maxPrice,
+            int page,
+            int size,
+            String sortBy,
+            String direction
     ) {
+
+        if (page < 0 ) {
+            throw new InvalidProductFilterException(
+                    "Page must be greater than or equal to 0"
+            );
+        }
+
+        if (size < 0 || size > 100) {
+            throw new InvalidProductFilterException(
+                    "Size must be between 0 and 100"
+            );
+        }
+
+        Set<String> allowedSortFields =
+                Set.of(
+                        "id", "name", "category", "price"
+                );
+
+        if (!allowedSortFields.contains(sortBy)) {
+            throw new InvalidProductFilterException(
+                    "Invalid sort field " + sortBy
+            );
+        }
+
+        Sort.Direction sortDirection;
+
+        try {
+            sortDirection = Sort.Direction.fromString(direction);
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidProductFilterException(
+                    "Direction must be asc or desc"
+            );
+        }
+
+        Sort sort = Sort.by(sortDirection, sortBy);
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
         int filterCount = 0;
 
         if (category != null && !category.isBlank()) {
@@ -101,11 +147,19 @@ public class ProductService {
         }
 
         if (category != null && !category.isBlank()) {
-            return productRepository.findByCategoryIgnoreCase(category);
+            return productRepository
+                    .findByCategoryIgnoreCase(
+                            category,
+                            pageable
+                    );
         }
 
         if (search != null && !search.isBlank()) {
-            return productRepository.findByNameContainingIgnoreCase(search);
+            return productRepository
+                    .findByNameContainingIgnoreCase(
+                            search,
+                            pageable
+                    );
         }
 
         if (maxPrice != null) {
@@ -115,9 +169,13 @@ public class ProductService {
                 );
             }
 
-            return productRepository.findByPriceLessThanEqual(maxPrice);
+            return productRepository
+                    .findByPriceLessThanEqual(
+                            maxPrice,
+                            pageable
+                    );
         }
 
-        return productRepository.findAll();
+        return productRepository.findAll(pageable);
     }
 }
