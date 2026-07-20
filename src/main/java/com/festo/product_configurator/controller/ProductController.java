@@ -1,7 +1,9 @@
 package com.festo.product_configurator.controller;
 
 import com.festo.product_configurator.dto.CreateProductRequest;
+import com.festo.product_configurator.dto.ProductResponse;
 import com.festo.product_configurator.dto.UpdateProductRequest;
+import com.festo.product_configurator.mapper.ProductMapper;
 import com.festo.product_configurator.model.Product;
 import com.festo.product_configurator.service.ProductService;
 import jakarta.validation.Valid;
@@ -10,26 +12,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
     private final ProductService productService;
 
+    private final ProductMapper productMapper;
+
     public ProductController(
-            ProductService productService
+            ProductService productService,
+            ProductMapper productMapper
     ) {
         this.productService = productService;
+        this.productMapper = productMapper;
     }
 
     @GetMapping
-    public Page<Product> getProducts(
+    public Page<ProductResponse> getProducts(
             @RequestParam(name = "category", required = false)
             String category,
 
-                @RequestParam(name = "search", required = false)
+            @RequestParam(name = "search", required = false)
             String search,
 
             @RequestParam(name= "maxPrice", required = false)
@@ -47,7 +51,7 @@ public class ProductController {
             @RequestParam(name = "direction", defaultValue = "asc")
             String direction
     ) {
-        return productService.getProducts(
+        Page<Product> products = productService.getProducts(
                 category,
                 search,
                 maxPrice,
@@ -56,27 +60,36 @@ public class ProductController {
                 sortBy,
                 direction
         );
+
+        return products.map(
+                productMapper::toResponse
+        ); /* This is so-called method reference(map accepts product, toResponse accepts a product). It is equivalent to
+        products.map(product -> productMapper.toResponse(product))*/
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(
+    public ResponseEntity<ProductResponse> getProductById(
             @PathVariable Long id
     ) {
         Product product = productService.getProductById(id);
 
-        return ResponseEntity.ok(product); // productService.getProductById(id);
+        ProductResponse response = productMapper.toResponse(product);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(
+    public ResponseEntity<ProductResponse> createProduct(
             @Valid
             @RequestBody CreateProductRequest request
     ) {
         Product createdProduct = productService.createProduct(request);
 
+        ProductResponse response = productMapper.toResponse(createdProduct);
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(createdProduct);
+                .body(response);
     }
 
     @DeleteMapping("/{id}")
@@ -91,13 +104,15 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(
+    public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProductRequest request
             ) {
 
         Product updatedProduct = productService.updateProduct(id, request);
 
-        return ResponseEntity.ok(updatedProduct);
+        ProductResponse response = productMapper.toResponse(updatedProduct);
+
+        return ResponseEntity.ok(response);
     }
 }
