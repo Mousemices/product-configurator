@@ -29,7 +29,7 @@ public class ProductController {
             @RequestParam(name = "category", required = false)
             String category,
 
-            @RequestParam(name = "search", required = false)
+                @RequestParam(name = "search", required = false)
             String search,
 
             @RequestParam(name= "maxPrice", required = false)

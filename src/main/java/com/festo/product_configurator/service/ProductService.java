@@ -6,13 +6,17 @@ import com.festo.product_configurator.exception.InvalidProductFilterException;
 import com.festo.product_configurator.exception.ProductNotFoundException;
 import com.festo.product_configurator.model.Product;
 import com.festo.product_configurator.repository.ProductRepository;
+import com.festo.product_configurator.specification.ProductSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -126,40 +130,19 @@ public class ProductService {
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        int filterCount = 0;
+        List<Specification<Product>> specifications =
+                new ArrayList<>();
 
         if (category != null && !category.isBlank()) {
-            filterCount++;
-        }
-
-        if (search != null && !search.isBlank()) {
-            filterCount++;
-        }
-
-        if (maxPrice != null) {
-            filterCount++;
-        }
-
-        if (filterCount > 1) {
-            throw new InvalidProductFilterException(
-                    "Only one filter can be used at a time"
+            specifications.add(
+                    ProductSpecification.hasCategoryIgnoreCase(category)
             );
         }
 
-        if (category != null && !category.isBlank()) {
-            return productRepository
-                    .findByCategoryIgnoreCase(
-                            category,
-                            pageable
-                    );
-        }
-
         if (search != null && !search.isBlank()) {
-            return productRepository
-                    .findByNameContainingIgnoreCase(
-                            search,
-                            pageable
-                    );
+            specifications.add(
+                    ProductSpecification.nameContainsIgnoreCase(search)
+            );
         }
 
         if (maxPrice != null) {
@@ -169,13 +152,14 @@ public class ProductService {
                 );
             }
 
-            return productRepository
-                    .findByPriceLessThanEqual(
-                            maxPrice,
-                            pageable
-                    );
+            specifications.add(
+                    ProductSpecification.priceLessThanEqual(maxPrice)
+            );
         }
 
-        return productRepository.findAll(pageable);
+        Specification<Product> specification =
+                Specification.allOf(specifications);
+
+        return productRepository.findAll(specification, pageable);
     }
 }

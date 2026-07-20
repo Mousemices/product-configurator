@@ -4,11 +4,11 @@ import com.festo.product_configurator.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface ProductRepository
-        extends JpaRepository<Product, Long> {
+        extends JpaRepository<Product, Long>,
+                JpaSpecificationExecutor<Product> {
 
     Page<Product> findByCategoryIgnoreCase(
             String category,
