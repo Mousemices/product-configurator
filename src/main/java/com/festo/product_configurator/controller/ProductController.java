@@ -1,6 +1,7 @@
 package com.festo.product_configurator.controller;
 
 import com.festo.product_configurator.dto.CreateProductRequest;
+import com.festo.product_configurator.dto.PageResponse;
 import com.festo.product_configurator.dto.ProductResponse;
 import com.festo.product_configurator.dto.UpdateProductRequest;
 import com.festo.product_configurator.mapper.ProductMapper;
@@ -29,7 +30,7 @@ public class ProductController {
     }
 
     @GetMapping
-    public Page<ProductResponse> getProducts(
+    public PageResponse<ProductResponse> getProducts(
             @RequestParam(name = "category", required = false)
             String category,
 
@@ -61,10 +62,12 @@ public class ProductController {
                 direction
         );
 
-        return products.map(
-                productMapper::toResponse
-        ); /* This is so-called method reference(map accepts product, toResponse accepts a product). It is equivalent to
-        products.map(product -> productMapper.toResponse(product))*/
+        Page<ProductResponse> productResponses =
+                products.map(
+                        productMapper::toResponse
+                );
+
+        return PageResponse.from(productResponses);
     }
 
     @GetMapping("/{id}")
